@@ -299,6 +299,9 @@ Use formulas:
 
 ₹0 (fully free stack)
 
+## Store worker runbook
+How store worker should use this process. Details are in this doc - [store-worker-runbook](docs/store-worker-runbook.md)
+
 ---
 
 ## 🏁 Final Summary
