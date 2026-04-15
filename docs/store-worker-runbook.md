@@ -24,6 +24,7 @@ Always write clearly:
 * Customer Name
 * Phone Number ✅ (MOST IMPORTANT)
 * Total Amount
+* Date (Order Date)
 * Delivery Date
 
 ---
