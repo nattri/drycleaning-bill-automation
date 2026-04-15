@@ -313,6 +313,12 @@ timestamp | file | error_type | error_details
 
 ---
 
+## 👨‍🔧 Store Worker Runbook
+How store worker should use this process? 
+Details are in this doc - [store-worker-runbook](docs/store-worker-runbook.md)
+
+---
+
 ## 🏁 Final Summary
 
 This system:
