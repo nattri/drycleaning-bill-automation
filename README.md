@@ -1,6 +1,6 @@
 # 🧾 Dry Cleaning Automation System
 
-### (Google Drive + OCR + Order Lifecycle + Logging)
+### (Google Drive + OCR + Order Lifecycle + Customer Management + Logging)
 
 ---
 
@@ -17,6 +17,7 @@ It is designed to handle **real-world workflow**, including:
 
 * Multi-stage updates (same bill used multiple times)
 * Payment updates after delivery
+* Automatic customer creation
 * Partial failures and manual corrections
 
 ---
@@ -43,12 +44,35 @@ OCR → Parsing → Validation
         ↓
 Decision Engine
         ↓
+Customer Resolution
+        ↓
 Orders Tab (Insert/Update)
         ↓
-Customers Tab (Auto via formulas)
+Customers Tab (Insert if new)
         ↓
 Logs + File Movement
 ```
+
+---
+
+## 👤 Customer Resolution (Critical Step)
+
+```text
+Extract Phone Number
+        ↓
+Check in Customers tab
+        ↓
+IF exists:
+    Use existing customer
+ELSE:
+    Create new customer
+```
+
+### Rules:
+
+* Phone Number = Unique identifier
+* New customer created only if phone not found
+* Do NOT create customer if phone is missing
 
 ---
 
@@ -79,29 +103,29 @@ incoming → processing → decision → processed/review/failed
 
 ## 🧾 Data Model
 
----
-
 ### Orders Tab (Source of Truth)
 
-| Field          | Description       |
-| -------------- | ----------------- |
-| Order number   | Unique ID         |
-| Customer Name  | Display           |
-| Phone          | Customer identity |
-| No of Pcs      | Item count        |
-| Order value    | Total             |
-| Order Date     | Date              |
-| Delivery Date  | Expected          |
-| Order Status   | In progress/Delivered |
-| Payment Status | Pending/Paid      |
-| Payment Mode   | Cash/UPI          |
+| Field          | Description             |
+| -------------- | ----------------------- |
+| Order number   | Unique ID               |
+| Customer Name  | Display                 |
+| Phone          | Customer identity       |
+| No of Pcs      | Item count              |
+| Order value    | Total                   |
+| Order Date     | Date                    |
+| Delivery Date  | Expected                |
+| Order Status   | IN_PROGRESS / DELIVERED |
+| Payment Method | Cash / UPI / Pending    |
 
 ---
 
-### Customers Tab (Derived)
+### Customers Tab (Master Data)
 
-* Aggregated using formulas
-* Based on Phone Number
+| Field        | Description           |
+| ------------ | --------------------- |
+| Name         | Customer name         |
+| Phone Number | Unique identifier     |
+| Other fields | Optional / future use |
 
 ---
 
@@ -116,26 +140,21 @@ Customer = Phone Number
 
 ## 🔄 Event Types
 
----
-
 ### 🆕 New Order
 
-* First time bill uploaded
-* Insert into orders
+```text
+Order Status = IN_PROGRESS
+Payment Method = Pending
+```
 
 ---
 
 ### 💰 Payment Update
 
-* Same bill uploaded again
-* Payment info detected
-* Update existing order
-
----
-
-### 📦 Order Completion
-
-* Inferred from payment (simple approach)
+```text
+Payment Method = Cash or UPI
+Order Status = DELIVERED
+```
 
 ---
 
@@ -148,17 +167,45 @@ Customer = Phone Number
 
 ---
 
-## 🧠 Smart Update Rules
+## 🧠 Update Rules (CRITICAL)
 
-* Never overwrite existing correct data
-* Only update fields if new value present
+```text
+- Only update fields if new value is present
+- Never overwrite:
+    - Order Number
+    - Phone Number
+    - Order Value
 
-| Field   | Rule              |
-| ------- | ----------------- |
-| Amount  | Never overwrite   |
-| Phone   | Never overwrite   |
-| Name    | Avoid overwrite   |
-| Payment | Update if present |
+- Payment Method:
+    Pending → Cash/UPI (allowed)
+    Cash/UPI → Pending (NOT allowed)
+
+- Order Status:
+    IN_PROGRESS → DELIVERED (allowed)
+    DELIVERED → IN_PROGRESS (NOT allowed)
+```
+
+---
+
+## 💰 Payment Detection Rule
+
+```text
+Payment is detected ONLY if:
+
+- "Paid: Cash"
+- "Paid: UPI"
+```
+
+---
+
+## 🧠 Derived Logic
+
+```text
+IF Payment Method in (Cash, UPI):
+    Order is Paid
+ELSE:
+    Order is Pending
+```
 
 ---
 
@@ -171,75 +218,43 @@ Customer = Phone Number
 
 ---
 
-## 📊 Payment Logic
-
-| Condition          | Status  |
-| ------------------ | ------- |
-| Payment mode found | Paid    |
-| Not found          | Pending |
-
-### Payment method
-- Cash
-- UPI
----
-
-## ⚠️ OCR Limitations
-
-* Handwriting may fail
-* Phone numbers may be incorrect
-* Item count may be unclear
-
----
-
 ## 🟢 Processing Outcomes
-
----
 
 ### Success
 
 * All required data found
-* → processed + success_log
-
----
+  → processed + success_log
 
 ### Review
 
 * Partial data missing
-* → review + review_log
-
----
+  → review + review_log
 
 ### Failure
 
 * Critical data missing
-* → failed + error_log
+  → failed + error_log
 
 ---
 
 ## 📋 Logging
 
----
-
 ### success_log.csv
 
 ```text
-timestamp | file | order | phone | action
+timestamp | file | order | action | payment_method | order_status | remarks
 ```
-
----
 
 ### review_log.csv
 
 ```text
-timestamp | file | missing_fields
+timestamp | file | missing_fields | remarks
 ```
-
----
 
 ### error_log.csv
 
 ```text
-timestamp | file | error
+timestamp | file | error_type | error_details
 ```
 
 ---
@@ -251,53 +266,52 @@ timestamp | file | error
 
 ---
 
-## ⚠️ Critical Real-World Considerations
+## 🔍 Manual Review Workflow
+
+```text
+1. Open review folder
+2. Check image
+3. Fix data in Google Sheet
+4. Move file to processed
+```
 
 ---
 
-### 1. Same Bill Used Multiple Times
+## ❌ Failure Handling
 
-* Must match using Order Number
-
----
-
-### 2. Duplicate Uploads
-
-* Prevent via order check
-
----
-
-### 3. Sequence Safety
-
-* Do not overwrite correct data with old uploads
+```text
+1. Check error_log.csv
+2. Identify issue
+3. Fix:
+   - Re-upload image OR
+   - Manually update sheet
+4. Move file back to incoming
+```
 
 ---
 
-### 4. Item Count Extraction
+## ⚠️ Real-World Constraints
 
-* May fail → send to review
-
----
-
-### 5. Manual Review is Expected
-
-* System is not 100% accurate
+* Handwritten OCR may fail
+* Phone number extraction may be incorrect
+* Item count extraction may fail
+* Manual review is expected (~10–20%)
 
 ---
 
 ## 📊 Customers Tab Strategy
 
-Use formulas:
-
-* SUMIF
-* COUNTIF
-* MAXIFS
+* Customers are created automatically
+* Phone number is unique identifier
+* Aggregations (if needed) can be added via formulas
 
 ---
 
 ## 💸 Cost
 
 ₹0 (fully free stack)
+
+---
 
 ## Store worker runbook
 How store worker should use this process. Details are in this doc - [store-worker-runbook](docs/store-worker-runbook.md)
@@ -309,9 +323,10 @@ How store worker should use this process. Details are in this doc - [store-worke
 This system:
 
 ✅ Automates order creation & updates
-✅ Handles real-world workflow
-✅ Supports retries & failure handling
-✅ Maintains logs for debugging
-✅ Uses Google Sheets as backend
+✅ Automatically creates customers
+✅ Uses simple 2-state lifecycle
+✅ Prevents incorrect overwrites
+✅ Handles failures & retries
+✅ Maintains logs for traceability
 
 ---
