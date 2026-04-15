@@ -1,312 +1,314 @@
-# 🧾 Dry Cleaning Automation System (Google Drive Based & Zero-Cost Pipeline)
+# 🧾 Dry Cleaning Automation System
+
+### (Google Drive + OCR + Order Lifecycle + Logging)
+
+---
 
 ## 📌 Overview
 
-This project automates your dry cleaning billing workflow by extracting data from bill images uploaded via **Google Drive** and updating a centralized **Google Sheet**.
+This system automates dry cleaning order tracking using:
 
-### 🎯 Goal
+* 📸 Bill images uploaded via Google Drive
+* 🤖 OCR + parsing to extract data
+* 📊 Google Sheets for order & customer management
+* 📁 Folder lifecycle + logs for reliability
 
-Replace manual flow:
+It is designed to handle **real-world workflow**, including:
 
-* Worker writes bill → sends photo → manually enters into sheet
-
-With automated flow:
-
-* Upload image to Google Drive → auto extract → auto update Google Sheets
+* Multi-stage updates (same bill used multiple times)
+* Payment updates after delivery
+* Partial failures and manual corrections
 
 ---
 
-## 🧠 System Architecture
+## 🧠 Core Concept
 
 ```text
-Google Drive → OCR → Data Parsing → Google Sheets
+One Physical Bill → Multiple System Events
+```
+
+* First image → Order Creation
+* Later image → Payment Update
+
+---
+
+## 🏗️ System Architecture
+
+```text
+Google Drive (incoming)
+        ↓
+Processing Engine
+        ↓
+OCR → Parsing → Validation
+        ↓
+Decision Engine
+        ↓
+Orders Tab (Insert/Update)
+        ↓
+Customers Tab (Auto via formulas)
+        ↓
+Logs + File Movement
 ```
 
 ---
 
-## 🔄 End-to-End Flow
-
-1. Worker uploads bill image to Google Drive folder (`incoming/`)
-2. Script fetches new images from Drive
-3. OCR extracts text from image
-4. Parser converts text → structured data
-5. Data appended to Google Sheets
-6. File moved to `processed/` folder
-
----
-
-## 🏗️ Tech Stack (100% Free)
-
-| Layer           | Technology                               |
-| --------------- | ---------------------------------------- |
-| Storage (Input) | Google Drive                             |
-| OCR             | Tesseract OCR                            |
-| Parsing         | Regex (MVP) / Local LLM (optional)       |
-| Backend         | Python                                   |
-| Output          | Google Sheets                            |
-| Automation      | Scheduled script (cron / task scheduler) |
-
----
-
-## 📂 Google Drive Folder Structure
-
-Create this structure in your Drive:
+## 📂 Google Drive Structure
 
 ```text
 DryCleaningBills/
- ├── incoming/     # Worker uploads images here
- ├── processed/    # Processed images moved here
+ ├── incoming/
+ ├── processing/
+ ├── processed/
+ ├── review/
+ ├── failed/
+ ├── logs/
+      ├── success_log.csv
+      ├── review_log.csv
+      └── error_log.csv
 ```
 
 ---
 
-## 📂 Project Structure
+## 🔄 File Lifecycle
 
 ```text
-dry-cleaning-automation/
-│
-├── main.py
-├── drive.py          # Google Drive integration
-├── ocr.py            # OCR logic
-├── parser.py         # Data extraction logic
-├── sheets.py         # Google Sheets integration
-│
-├── processed_files.json   # Track processed file IDs
-├── config.json
-├── requirements.txt
-└── README.md
+incoming → processing → decision → processed/review/failed
 ```
 
 ---
 
-## ⚙️ Features (MVP)
-
-* 📥 Auto-fetch images from Google Drive
-* 🔍 OCR-based text extraction
-* 🧾 Extract:
-
-  * Bill Number
-  * Customer Name
-  * Items
-  * Total Amount
-  * Payment Mode
-* 📊 Auto-update Google Sheets
-* 📁 Move processed files to avoid duplication
-* 🔁 Track processed files (no re-processing)
+## 🧾 Data Model
 
 ---
 
-## 🚀 Setup Instructions
+### Orders Tab (Source of Truth)
+
+| Field          | Description       |
+| -------------- | ----------------- |
+| Order number   | Unique ID         |
+| Customer Name  | Display           |
+| Phone          | Customer identity |
+| No of Pcs      | Item count        |
+| Order value    | Total             |
+| Order Date     | Date              |
+| Delivery Date  | Expected          |
+| Order Status   | Pending/Delivered |
+| Payment Status | Pending/Paid      |
+| Payment Mode   | Cash/UPI          |
 
 ---
 
-### 1. Install Python Dependencies
+### Customers Tab (Derived)
 
-```bash
-pip install -r requirements.txt
+* Aggregated using formulas
+* Based on Phone Number
+
+---
+
+## 🔑 Identity Rules
+
+```text
+Order = Order Number
+Customer = Phone Number
 ```
 
 ---
 
-### 2. Install Tesseract OCR
+## 🔄 Event Types
 
-#### Mac:
+---
 
-```bash
-brew install tesseract
+### 🆕 New Order
+
+* First time bill uploaded
+* Insert into orders
+
+---
+
+### 💰 Payment Update
+
+* Same bill uploaded again
+* Payment info detected
+* Update existing order
+
+---
+
+### 📦 Order Completion
+
+* Inferred from payment (simple approach)
+
+---
+
+## ⚙️ Insert vs Update Logic
+
+| Condition       | Action |
+| --------------- | ------ |
+| Order not found | Insert |
+| Order exists    | Update |
+
+---
+
+## 🧠 Smart Update Rules
+
+* Never overwrite existing correct data
+* Only update fields if new value present
+
+| Field   | Rule              |
+| ------- | ----------------- |
+| Amount  | Never overwrite   |
+| Phone   | Never overwrite   |
+| Name    | Avoid overwrite   |
+| Payment | Update if present |
+
+---
+
+## 🧠 Validation Rules
+
+| Field        | Required |
+| ------------ | -------- |
+| Order Number | MUST     |
+| Phone Number | MUST     |
+
+---
+
+## 📊 Payment Logic
+
+| Condition          | Status  |
+| ------------------ | ------- |
+| Payment mode found | Paid    |
+| Not found          | Pending |
+
+### Payment method
+- Cash
+- UPI
+---
+
+## ⚠️ OCR Limitations
+
+* Handwriting may fail
+* Phone numbers may be incorrect
+* Item count may be unclear
+
+---
+
+## 🟢 Processing Outcomes
+
+---
+
+### Success
+
+* All required data found
+* → processed + success_log
+
+---
+
+### Review
+
+* Partial data missing
+* → review + review_log
+
+---
+
+### Failure
+
+* Critical data missing
+* → failed + error_log
+
+---
+
+## 📋 Logging
+
+---
+
+### success_log.csv
+
+```text
+timestamp | file | order | phone | action
 ```
 
-#### Ubuntu:
-
-```bash
-sudo apt install tesseract-ocr
-```
-
-#### Windows:
-
-* Download installer and add to PATH
-
 ---
 
-### 3. Setup Google Cloud (Drive + Sheets)
+### review_log.csv
 
-1. Create a project in Google Cloud Console
-2. Enable APIs:
-
-   * Google Drive API
-   * Google Sheets API
-3. Create Service Account
-4. Download `credentials.json`
-5. Share:
-
-   * Google Drive folder with service account email
-   * Google Sheet with service account email
-
----
-
-### 4. Configuration
-
-Create `config.json`:
-
-```json
-{
-  "drive_folder_incoming_id": "YOUR_FOLDER_ID",
-  "drive_folder_processed_id": "YOUR_FOLDER_ID",
-  "google_sheet_name": "DryCleaningOrders",
-  "local_temp_folder": "./temp"
-}
+```text
+timestamp | file | missing_fields
 ```
 
 ---
 
-### 5. Run the Project
+### error_log.csv
 
-```bash
-python main.py
+```text
+timestamp | file | error
 ```
 
 ---
 
-## 🔄 Automation Setup
+## 🔁 Retry Strategy
 
-### Option 1: Run Manually
-
-* Run script whenever needed
-
----
-
-### Option 2: Schedule (Recommended)
-
-#### Mac/Linux (cron):
-
-```bash
-*/5 * * * * python /path/to/main.py
-```
-
-#### Windows:
-
-* Use Task Scheduler → Run every 5 minutes
+* Move files from review/failed → incoming
+* OR fix manually in sheet
 
 ---
 
-## 📱 Worker Instructions (IMPORTANT)
-
-1. Open Google Drive app
-2. Go to `DryCleaningBills/incoming`
-3. Upload bill photo
-
-👉 That’s it. No extra steps.
+## ⚠️ Critical Real-World Considerations
 
 ---
 
-## 🧩 Parsing Strategy
+### 1. Same Bill Used Multiple Times
 
-### Option 1: Regex (Recommended for MVP)
-
-Works best if bill format is consistent.
-
-Example:
-
-```
-Bill No: 1023
-Name: Amit
-Total: 250
-Paid: UPI
-```
+* Must match using Order Number
 
 ---
 
-### Option 2: Local AI (Advanced)
+### 2. Duplicate Uploads
 
-Use local LLM if:
-
-* Handwritten bills
-* Inconsistent formats
+* Prevent via order check
 
 ---
 
-## 📊 Google Sheet Format
+### 3. Sequence Safety
 
-| Bill No | Name | Items | Total | Payment | Status |
-| ------- | ---- | ----- | ----- | ------- | ------ |
-
----
-
-## ⚠️ Assumptions
-
-* Bills are readable (prefer printed)
-* Worker uploads correct images
-* Bill format is semi-structured
+* Do not overwrite correct data with old uploads
 
 ---
 
-## 🛠️ Enhancements (Future Scope)
+### 4. Item Count Extraction
 
-* 🔎 Duplicate bill detection
-* 📊 Dashboard (React आधारित UI)
-* 📲 WhatsApp notifications
-* 📦 Order lifecycle tracking:
-
-  * Pending
-  * In Process
-  * Ready
-  * Delivered
-* 🧾 Manual correction UI
+* May fail → send to review
 
 ---
 
-## 🧠 Design Decisions
+### 5. Manual Review is Expected
 
-* ✅ Google Drive chosen for easy mobile upload
-* ❌ Avoid WhatsApp automation (complex & unreliable)
-* ❌ No paid APIs
-* ✅ Local processing for zero cost
-* ✅ Simple & maintainable
+* System is not 100% accurate
+
+---
+
+## 📊 Customers Tab Strategy
+
+Use formulas:
+
+* SUMIF
+* COUNTIF
+* MAXIFS
 
 ---
 
 ## 💸 Cost
 
-| Component     | Cost |
-| ------------- | ---- |
-| Google Drive  | Free |
-| OCR           | Free |
-| Backend       | Free |
-| Google Sheets | Free |
-
-**Total Cost: ₹0**
+₹0 (fully free stack)
 
 ---
 
-## 🚧 Limitations
+## 🏁 Final Summary
 
-* OCR may struggle with bad handwriting
-* Script must run periodically (not real-time)
-* Depends on Google Drive API availability
+This system:
 
----
-
-## 📌 Next Steps
-
-1. Setup Google Cloud credentials
-2. Implement Drive file fetch
-3. Implement OCR module
-4. Implement parser (regex first)
-5. Integrate Google Sheets
-6. Test with real bill samples
-
----
-
-## 🧑‍💻 Author Notes
-
-* Built for small business automation
-* Optimized for zero cost and simplicity
-* Easily scalable to SaaS in future
-
----
-
-## 📄 License
-
-MIT License (or as preferred)
+✅ Automates order creation & updates
+✅ Handles real-world workflow
+✅ Supports retries & failure handling
+✅ Maintains logs for debugging
+✅ Uses Google Sheets as backend
 
 ---
