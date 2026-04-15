@@ -1,6 +1,6 @@
 # 🧾 Dry Cleaning Automation System
 
-### (Google Drive + OCR + Order Lifecycle + Logging)
+### (Google Drive + OCR + Order Lifecycle + Customer Management + Logging)
 
 ---
 
@@ -17,6 +17,7 @@ It is designed to handle **real-world workflow**, including:
 
 * Multi-stage updates (same bill used multiple times)
 * Payment updates after delivery
+* Automatic customer creation
 * Partial failures and manual corrections
 
 ---
@@ -43,10 +44,35 @@ OCR → Parsing → Validation
         ↓
 Decision Engine
         ↓
+Customer Resolution
+        ↓
 Orders Tab (Insert/Update)
+        ↓
+Customers Tab (Insert if new)
         ↓
 Logs + File Movement
 ```
+
+---
+
+## 👤 Customer Resolution (Critical Step)
+
+```text
+Extract Phone Number
+        ↓
+Check in Customers tab
+        ↓
+IF exists:
+    Use existing customer
+ELSE:
+    Create new customer
+```
+
+### Rules:
+
+* Phone Number = Unique identifier
+* New customer created only if phone not found
+* Do NOT create customer if phone is missing
 
 ---
 
@@ -93,6 +119,16 @@ incoming → processing → decision → processed/review/failed
 
 ---
 
+### Customers Tab (Master Data)
+
+| Field        | Description           |
+| ------------ | --------------------- |
+| Name         | Customer name         |
+| Phone Number | Unique identifier     |
+| Other fields | Optional / future use |
+
+---
+
 ## 🔑 Identity Rules
 
 ```text
@@ -106,9 +142,6 @@ Customer = Phone Number
 
 ### 🆕 New Order
 
-* First time bill uploaded
-* Insert new row
-
 ```text
 Order Status = IN_PROGRESS
 Payment Method = Pending
@@ -117,8 +150,6 @@ Payment Method = Pending
 ---
 
 ### 💰 Payment Update
-
-* Same bill uploaded again with payment info
 
 ```text
 Payment Method = Cash or UPI
@@ -163,8 +194,6 @@ Payment is detected ONLY if:
 
 - "Paid: Cash"
 - "Paid: UPI"
-
-Ignore all other text
 ```
 
 ---
@@ -194,17 +223,17 @@ ELSE:
 ### Success
 
 * All required data found
-* → processed + success_log
+  → processed + success_log
 
 ### Review
 
 * Partial data missing
-* → review + review_log
+  → review + review_log
 
 ### Failure
 
 * Critical data missing
-* → failed + error_log
+  → failed + error_log
 
 ---
 
@@ -272,8 +301,9 @@ timestamp | file | error_type | error_details
 
 ## 📊 Customers Tab Strategy
 
-* Use formulas (SUMIF, COUNTIF, etc.)
-* Based on Phone Number
+* Customers are created automatically
+* Phone number is unique identifier
+* Aggregations (if needed) can be added via formulas
 
 ---
 
@@ -288,6 +318,7 @@ timestamp | file | error_type | error_details
 This system:
 
 ✅ Automates order creation & updates
+✅ Automatically creates customers
 ✅ Uses simple 2-state lifecycle
 ✅ Prevents incorrect overwrites
 ✅ Handles failures & retries

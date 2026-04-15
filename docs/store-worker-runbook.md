@@ -29,11 +29,25 @@ Always write clearly:
 
 ---
 
-### ✍️ Writing Tips
+## ✍️ Standard Format (MANDATORY)
 
-* Use clear handwriting
-* Do not overwrite numbers
-* Write phone number digit-by-digit clearly
+Always write in this format:
+
+```text
+Phone: 9876543210
+```
+
+When payment is received:
+
+```text
+Paid: Cash
+```
+
+OR
+
+```text
+Paid: UPI
+```
 
 ---
 
@@ -41,7 +55,7 @@ Always write clearly:
 
 After creating bill:
 
-👉 Upload image to Google Drive folder:
+👉 Upload image to:
 
 ```text
 incoming/
@@ -67,13 +81,9 @@ Paid: UPI
 
 ---
 
-### ❗ Do NOT write like:
+### ❗ If Payment NOT received
 
-* “done”
-* “ok”
-* “✓”
-
-👉 System cannot understand these
+👉 Do NOT write anything related to payment
 
 ---
 
@@ -111,11 +121,11 @@ Paid: UPI
 
 ### Rule 4: Image Quality
 
-* Ensure:
+Ensure:
 
-  * Good lighting
-  * Full bill visible
-  * No blur
+* Good lighting
+* Full bill visible
+* No blur
 
 ---
 
@@ -149,7 +159,7 @@ Paid: UPI
 
 ## 📂 What Happens After Upload
 
-You don’t need to do anything, system will:
+You don’t need to do anything. System will:
 
 * Read bill
 * Update sheet
