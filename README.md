@@ -92,7 +92,7 @@ incoming → processing → decision → processed/review/failed
 | Order value    | Total             |
 | Order Date     | Date              |
 | Delivery Date  | Expected          |
-| Order Status   | Pending/Delivered |
+| Order Status   | In progress/Delivered |
 | Payment Status | Pending/Paid      |
 | Payment Mode   | Cash/UPI          |
 
