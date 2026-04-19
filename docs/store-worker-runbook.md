@@ -31,22 +31,22 @@ Always write clearly:
 
 ## ✍️ Standard Format (MANDATORY)
 
-Always write in this format:
+Always write the phone number clearly below the customer name:
 
 ```text
-Phone: 9876543210
+9876543210
 ```
 
 When payment is received:
 
 ```text
-Paid: Cash
+Payment - Cash
 ```
 
 OR
 
 ```text
-Paid: UPI
+Payment - UPI
 ```
 
 ---
@@ -70,13 +70,13 @@ On SAME bill:
 Write clearly:
 
 ```text
-Paid: Cash
+Payment - Cash
 ```
 
 OR
 
 ```text
-Paid: UPI
+Payment - UPI
 ```
 
 ---

@@ -22,6 +22,15 @@ It is designed to handle **real-world workflow**, including:
 
 ---
 
+## 🏗️ Tech Stack requirements - FREE APIS & SERVICES ONLY
+- Use python for this project.
+- Use free api for any service required.
+- Use google sheets as the database.
+- Use google drive to store the bills.
+- Use free based OCR to extract the data from the bills
+
+---
+
 ## 🧠 Core Concept
 
 ```text
@@ -105,27 +114,41 @@ incoming → processing → decision → processed/review/failed
 
 ### Orders Tab (Source of Truth)
 
-| Field          | Description             |
-| -------------- | ----------------------- |
-| Order number   | Unique ID               |
-| Customer Name  | Display                 |
-| Phone          | Customer identity       |
-| No of Pcs      | Item count              |
-| Order value    | Total                   |
-| Order Date     | Date                    |
-| Delivery Date  | Expected                |
-| Order Status   | IN_PROGRESS / DELIVERED |
-| Payment Method | Cash / UPI / Pending    |
+| Field            | Description                      | Tool managed? |
+| ---------------- | -------------------------------- | :-----------: |
+| Order number     | Unique ID                        | ✅ |
+| Customer Name    | Display                          | ✅ |
+| Number           | Customer phone (10-digit)        | ✅ |
+| Address          | Customer address                 | ❌ Manual |
+| No of Pcs        | Item count                       | ✅ |
+| No of Pcs / kg   | Weight (Wash & Iron)             | ✅ |
+| In coming mode   | Walk-in / Pickup etc.            | ❌ Manual |
+| Order value      | Total (post-discount)            | ✅ |
+| Order Date       | Date                             | ✅ |
+| Delivery Date    | Expected                         | ✅ |
+| Delivery mode    | Walk-in / Home delivery etc.     | ❌ Manual |
+| Order Status     | IN_PROGRESS / DELIVERED          | ✅ |
+| Payment mode     | Cash / UPI / Pending             | ✅ |
+| Comments         | Free text for owner/worker       | ❌ Manual |
+| Advance          | Partial payment amount           | ✅ |
+| Default          | Owner use                        | ❌ Manual |
 
 ---
 
 ### Customers Tab (Master Data)
 
-| Field        | Description           |
-| ------------ | --------------------- |
-| Name         | Customer name         |
-| Phone Number | Unique identifier     |
-| Other fields | Optional / future use |
+| Field              | Description           | Tool managed? |
+| ------------------ | --------------------- | :-----------: |
+| Name               | Customer name         | ✅ (new only) |
+| Phone Number       | Unique identifier     | ✅ (new only) |
+| Total Order Amount | Aggregate             | ❌ Manual |
+| Number of Orders   | Count                 | ❌ Manual |
+| Last Order Date    | Most recent           | ❌ Manual |
+| First Order Date   | First order           | ❌ Manual |
+| Pending Payment    | Outstanding balance   | ❌ Manual |
+| Package Balance    | Packages remaining    | ❌ Manual |
+| Locality           | Area                  | ❌ Manual |
+| Address            | Full address          | ❌ Manual |
 
 ---
 
@@ -144,7 +167,7 @@ Customer = Phone Number
 
 ```text
 Order Status = IN_PROGRESS
-Payment Method = Pending
+Payment mode = Pending
 ```
 
 ---
@@ -152,7 +175,7 @@ Payment Method = Pending
 ### 💰 Payment Update
 
 ```text
-Payment Method = Cash or UPI
+Payment mode = Cash or UPI
 Order Status = DELIVERED
 ```
 
@@ -176,7 +199,7 @@ Order Status = DELIVERED
     - Phone Number
     - Order Value
 
-- Payment Method:
+- Payment mode:
     Pending → Cash/UPI (allowed)
     Cash/UPI → Pending (NOT allowed)
 
@@ -192,8 +215,8 @@ Order Status = DELIVERED
 ```text
 Payment is detected ONLY if:
 
-- "Paid: Cash"
-- "Paid: UPI"
+- "Payment - Cash"
+- "Payment - UPI"
 ```
 
 ---
@@ -201,7 +224,7 @@ Payment is detected ONLY if:
 ## 🧠 Derived Logic
 
 ```text
-IF Payment Method in (Cash, UPI):
+IF Payment mode in (Cash, UPI):
     Order is Paid
 ELSE:
     Order is Pending
@@ -242,7 +265,7 @@ ELSE:
 ### success_log.csv
 
 ```text
-timestamp | file | order | action | payment_method | order_status | remarks
+timestamp | file | order | action | payment_mode | order_status | advance | remarks
 ```
 
 ### review_log.csv
